@@ -294,13 +294,7 @@ class Analyzer : public PartialAstVisitor
     obj->add(atom_name_, toJson(node->name()));
     startDoc(obj, "function", node->name(), node->loc());
 
-    if (node->token() == TOK_FORWARD)
-      obj->add(atom_kind_, toJson("forward"));
-    else if (node->token() == TOK_NATIVE)
-      obj->add(atom_kind_, toJson("native"));
-    else
-      obj->add(atom_kind_, toJson("stock"));
-
+    obj->add(atom_kind_, toJson(node->decoration()));
     obj->add(atom_returnType_, toJson(node->signature()->returnType()));
     obj->add(atom_parameters_, toJson(node->signature()->parameters()));
 
