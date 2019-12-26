@@ -281,6 +281,7 @@ class Analyzer : public PartialAstVisitor
     atom_constants_ = cc_.add("constants");
     atom_decl_ = cc_.add("decl");
     atom_default_ = cc_.add("default");
+    atom_value_ = cc_.add("value");
   }
 
   JsonObject *analyze(ParseTree *tree) {
@@ -385,6 +386,10 @@ class Analyzer : public PartialAstVisitor
 
         JsonObject *val = new (pool_) JsonObject();
         val->add(atom_name_, toJson(cs->name()));
+        if (cs->expression()) {
+          ke::AString expr = ExprToStr::Convert(cs->expression());
+          val->add(atom_value_, toJson(expr.chars()));
+        }
         startDoc(val, "enum value", cs->name(), cs->loc());
 
         constants_->add(val);
@@ -402,6 +407,10 @@ class Analyzer : public PartialAstVisitor
 
       JsonObject *val = new (pool_) JsonObject();
       val->add(atom_name_, toJson(cs->name()));
+      if (cs->expression()) {
+        ke::AString expr = ExprToStr::Convert(cs->expression());
+        val->add(atom_value_, toJson(expr.chars()));
+      }
       startDoc(val, "enum value", cs->name(), cs->loc());
 
       list->add(val);
@@ -530,6 +539,7 @@ class Analyzer : public PartialAstVisitor
   Atom *atom_constants_;
   Atom *atom_decl_;
   Atom *atom_default_;
+  Atom *atom_value_;
   JsonList *functions_;
   JsonList *methodmaps_;
   JsonList *enums_;
