@@ -137,6 +137,127 @@ class Comments : public CommentDelegate
   Vector<CommentRange> tail_comments_;
 };
 
+class ExprToStr : public StrictAstVisitor
+{
+ public:
+  static ke::AString Convert(Expression *expr) {
+    ExprToStr converter(expr);
+	return converter.result_;
+  }
+
+ private:
+  ExprToStr(Expression *expr) {
+    expr->accept(this);
+  }
+
+  void visitIntegerLiteral(IntegerLiteral *node) override {
+    result_.format("%" KE_FMT_I64, node->value());
+  }
+  void visitFloatLiteral(FloatLiteral *node) override {
+    result_.format("%f", node->value());
+  }
+  void visitStringLiteral(StringLiteral *node) override {
+    result_.format("\"%s\"", node->literal()->chars());
+  }
+  void visitCharLiteral(CharLiteral *node) override {
+    result_.format("'%c'", (char)node->value());
+  }
+  void visitBinaryExpression(BinaryExpression *node) override {
+    ke::AString left = Convert(node->left());
+    ke::AString right = Convert(node->right());
+    result_.format("%s %s %s", left.chars(), TokenNames[node->token()], node->right());
+  }
+  void visitAssignment(Assignment *node) override {
+    ke::AString lvalue = Convert(node->lvalue());
+    ke::AString rvalue = Convert(node->expression());
+    result_.format("%s %s %s", lvalue.chars(), TokenNames[node->token()], rvalue.chars());
+  }
+  void visitNameProxy(NameProxy *node) override {
+    result_ = ke::AString(node->name()->chars(), node->name()->length());
+  }
+  void visitCallExpression(CallExpression *node) override {
+    ke::AString callee = Convert(node->callee());
+    result_.format("%s(", callee.chars());
+    ExpressionList *args = node->arguments();
+    for (size_t i = 0; i < args->length(); i++) {
+      ke::AString arg = Convert(args->at(i));
+      if (i != args->length() - 1)
+        result_.format("%s%s, ", result_.chars(), arg.chars());
+      else
+	    result_.format("%s%s", result_.chars(), arg.chars());
+    }
+    result_.format("%s)", result_.chars());
+  }
+  void visitFieldExpression(FieldExpression *node) override {
+    ke::AString base = Convert(node->base());
+    result_.format("%s.%s", base.chars(), node->field()->chars());
+  }
+  void visitIndexExpression(IndexExpression *node) override {
+    ke::AString left = Convert(node->left());
+    ke::AString right = Convert(node->right());
+    result_.format("%s[%s]", left.chars(), right.chars());
+  }
+  void visitIncDecExpression(IncDecExpression *node) override {
+    ke::AString expr = Convert(node->expression());
+    if (node->postfix())
+      result_.format("%s%s", expr.chars(), TokenNames[node->token()]);
+    else
+      result_.format("%s%s", TokenNames[node->token()], expr.chars());
+  }
+  void visitUnaryExpression(UnaryExpression *node) override {
+    ke::AString expr = Convert(node->expression());
+    result_.format("%s%s", TokenNames[node->token()], expr.chars());
+  }
+  void visitViewAsExpression(ViewAsExpression *node) override {
+    ke::AString type = BuildTypeName(node->te(), nullptr);
+    ke::AString expr = Convert(node->expr());
+    result_.format("view_as<%s>(%s)", type.chars(), expr.chars());
+  }
+  void visitSizeofExpression(SizeofExpression *node) override {
+    Atom *atom_name = node->proxy()->name();
+    result_.format("sizeof(%s", atom_name->chars());
+    for (size_t i = 0; i < node->level(); i++) {
+      result_.format("%s[]", result_.chars());
+    }
+    result_.format("%s)", result_.chars());
+  }
+  void visitTernaryExpression(TernaryExpression *node) override {
+    ke::AString condition = Convert(node->condition());
+    ke::AString left = Convert(node->left());
+    ke::AString right = Convert(node->right());
+    result_.format("%s ? %s : %s", condition.chars(), left.chars(), right.chars());
+  }
+  void visitTokenLiteral(TokenLiteral *node) override {
+    result_ = TokenNames[node->token()];
+  }
+  void visitArrayLiteral(ArrayLiteral *node) override {
+    if (node->arrayLength() == 0) {
+      result_ = "{}";
+      return;
+    }
+
+	ExpressionList* exprs = node->expressions();
+
+    result_ = "{ ";
+    for (size_t i = 0; i < exprs->length(); i++) {
+      ke::AString element = Convert(exprs->at(i));
+      if (i == node->arrayLength() - 1 && !node->repeatLastElement())
+        result_.format("%s%s, ", result_.chars(), element.chars());
+      else
+        result_.format("%s%s", result_.chars(), element.chars());
+    }
+    if (node->repeatLastElement())
+      result_.format("%s...", result_.chars());
+    result_.format("%s }", result_.chars());
+  }
+  void visitThisExpression(ThisExpression* node) override {
+    result_ = "this";
+  }
+
+ private:
+  ke::AString result_;
+};
+
 class Analyzer : public PartialAstVisitor
 {
  public:
