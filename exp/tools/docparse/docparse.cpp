@@ -165,7 +165,7 @@ class ExprToStr : public StrictAstVisitor
   void visitBinaryExpression(BinaryExpression *node) override {
     ke::AString left = Convert(node->left());
     ke::AString right = Convert(node->right());
-    result_.format("%s %s %s", left.chars(), TokenNames[node->token()], node->right());
+    result_.format("%s %s %s", left.chars(), TokenNames[node->token()], right.chars());
   }
   void visitAssignment(Assignment *node) override {
     ke::AString lvalue = Convert(node->lvalue());
