@@ -280,6 +280,7 @@ class Analyzer : public PartialAstVisitor
     atom_entries_ = cc_.add("entries");
     atom_constants_ = cc_.add("constants");
     atom_decl_ = cc_.add("decl");
+    atom_default_ = cc_.add("default");
   }
 
   JsonObject *analyze(ParseTree *tree) {
@@ -486,6 +487,10 @@ class Analyzer : public PartialAstVisitor
       if (decl->name()) {
         obj->add(atom_name_, toJson(decl->name()));
         obj->add(atom_decl_, toJson(decl, true));
+        if (decl->initialization()) {
+          ke::AString def = ExprToStr::Convert(decl->initialization());
+          obj->add(atom_default_, toJson(def.chars()));
+        }
       } else {
         obj->add(atom_name_, toJson("..."));
 
@@ -524,6 +529,7 @@ class Analyzer : public PartialAstVisitor
   Atom *atom_entries_;
   Atom *atom_constants_;
   Atom *atom_decl_;
+  Atom *atom_default_;
   JsonList *functions_;
   JsonList *methodmaps_;
   JsonList *enums_;
