@@ -2096,10 +2096,13 @@ Parser::global(TokenKind kind)
   }
 
   SymAttrs flags = SymAttrs::None;
-  if (kind == TOK_STOCK)
+  if (kind == TOK_STOCK) {
+    if (match(TOK_STATIC))
+      kind = TOK_STATIC;
     flags |= SymAttrs::Stock;
-  if (kind == TOK_STATIC && match(TOK_STOCK))
+  } else if (kind == TOK_STATIC && match(TOK_STOCK)) {
     flags |= SymAttrs::Stock;
+  }
 
   uint32_t decl_flags = DeclFlags::MaybeFunction | DeclFlags::Variable;
   if (kind == TOK_NEW)
