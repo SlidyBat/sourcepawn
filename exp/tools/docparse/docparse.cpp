@@ -286,6 +286,7 @@ class Analyzer : public PartialAstVisitor
     atom_doc_end_ = cc_.add("docEnd");
     atom_properties_ = cc_.add("properties");
     atom_methods_ = cc_.add("methods");
+    atom_fields_ = cc_.add("fields");
     atom_getter_ = cc_.add("getter");
     atom_setter_ = cc_.add("setter");
     atom_entries_ = cc_.add("entries");
@@ -302,6 +303,7 @@ class Analyzer : public PartialAstVisitor
     constants_ = new (pool_) JsonList();
     typesets_ = new (pool_) JsonList();
     typedefs_ = new (pool_) JsonList();
+    enum_structs_ = new (pool_) JsonList();
 
     for (size_t i = 0; i < tree->statements()->length(); i++) {
       Statement *stmt = tree->statements()->at(i);
@@ -315,7 +317,23 @@ class Analyzer : public PartialAstVisitor
     obj->add(cc_.add("constants"), constants_);
     obj->add(cc_.add("typesets"), typesets_);
     obj->add(cc_.add("typedefs"), typedefs_);
+    obj->add(cc_.add("enumstructs"), enum_structs_);
     return obj;
+  }
+
+  void visitRecordDecl(RecordDecl* node) override {
+    JsonObject *obj = new (pool_) JsonObject();
+    obj->add(atom_name_, toJson(node->name()));
+    startDoc(obj, "enum struct", node->name(), node->loc());
+
+    SaveAndSet<JsonList *> new_props(&props_, new (pool_) JsonList());
+    SaveAndSet<JsonList *> new_methods(&methods_, new (pool_) JsonList());
+    for (size_t i = 0; i < node->body()->length(); i++)
+      node->body()->at(i)->accept(this);
+
+    obj->add(atom_methods_, methods_);
+    obj->add(atom_fields_, props_);
+    enum_structs_->add(obj);
   }
 
   void visitMethodmapDecl(MethodmapDecl *node) override {
@@ -355,6 +373,14 @@ class Analyzer : public PartialAstVisitor
     obj->add(atom_type_, toJson(node->te()));
     obj->add(atom_getter_, new (pool_) JsonBool(!!node->getter()));
     obj->add(atom_setter_, new (pool_) JsonBool(!!node->setter()));
+    props_->add(obj);
+  }
+  void visitFieldDecl(FieldDecl* node) override {
+    JsonObject *obj = new (pool_) JsonObject();
+    obj->add(atom_name_, toJson(node->name()));
+    startDoc(obj, "field", node->name(), node->loc());
+
+    obj->add(atom_type_, toJson(node->te()));
     props_->add(obj);
   }
 
@@ -543,7 +569,8 @@ class Analyzer : public PartialAstVisitor
   Atom *atom_doc_start_;
   Atom *atom_doc_end_;
   Atom *atom_properties_;
-  Atom *atom_methods_;
+  Atom* atom_methods_;
+  Atom* atom_fields_;
   Atom *atom_getter_;
   Atom *atom_setter_;
   Atom *atom_entries_;
@@ -557,6 +584,7 @@ class Analyzer : public PartialAstVisitor
   JsonList *constants_;
   JsonList *typesets_;
   JsonList *typedefs_;
+  JsonList *enum_structs_;
 
   JsonList *props_;
   JsonList *methods_;
