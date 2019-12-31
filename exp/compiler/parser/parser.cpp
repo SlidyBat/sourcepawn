@@ -943,11 +943,12 @@ Parser::parseAbstractAccessor()
 
   // :TODO: sizeof(variable::field) is allowed just lie sizeof(variable.field)
   if (match(TOK_DBL_COLON) || match(TOK_DOT)) {
+    TokenKind kind = scanner_.current()->kind;
     if (!expectName())
       return nullptr;
     NameToken field = *scanner_.current();
 
-    AbstractFieldExpression* res = new (pool_) AbstractFieldExpression(loc, field);
+    AbstractFieldExpression* res = new (pool_) AbstractFieldExpression(loc, kind, field);
     res->setChild(parseAbstractAccessor());
     return res;
   }

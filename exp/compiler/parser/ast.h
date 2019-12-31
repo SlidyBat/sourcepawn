@@ -570,18 +570,23 @@ class AbstractArrayMemberExpression : public AbstractAccessorExpression {
 
 class AbstractFieldExpression : public AbstractAccessorExpression {
  public:
-  AbstractFieldExpression(const SourceLocation& pos, NameToken field)
+  AbstractFieldExpression(const SourceLocation& pos, TokenKind token, NameToken field)
    : AbstractAccessorExpression(pos),
      field_(field)
   {}
 
   DECLARE_NODE(AbstractFieldExpression);
 
+  TokenKind token() const {
+    return token_;
+  }
+
   Atom* field() const {
     return field_.atom;
   }
 
  private:
+  TokenKind token_;
   NameToken field_;
 };
 
