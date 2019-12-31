@@ -142,7 +142,7 @@ class ExprToStr : public StrictAstVisitor
  public:
   static ke::AString Convert(Expression *expr) {
     ExprToStr converter(expr);
-	return converter.result_;
+    return converter.result_;
   }
 
  private:
@@ -184,7 +184,7 @@ class ExprToStr : public StrictAstVisitor
       if (i != args->length() - 1)
         result_.format("%s%s, ", result_.chars(), arg.chars());
       else
-	    result_.format("%s%s", result_.chars(), arg.chars());
+        result_.format("%s%s", result_.chars(), arg.chars());
     }
     result_.format("%s)", result_.chars());
   }
@@ -236,7 +236,7 @@ class ExprToStr : public StrictAstVisitor
       return;
     }
 
-	ExpressionList* exprs = node->expressions();
+    ExpressionList* exprs = node->expressions();
 
     result_ = "{ ";
     for (size_t i = 0; i < exprs->length(); i++) {
