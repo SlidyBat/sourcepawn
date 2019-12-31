@@ -216,9 +216,20 @@ class ExprToStr : public StrictAstVisitor
   void visitSizeofExpression(SizeofExpression *node) override {
     Atom *atom_name = node->proxy()->name();
     result_.format("sizeof(%s", atom_name->chars());
-    for (size_t i = 0; i < node->level(); i++) {
-      result_.format("%s[]", result_.chars());
+    AbstractAccessorExpression* accessor = node->accessorExpression();
+    while (accessor != nullptr) {
+      if (AbstractArrayMemberExpression* arrayExpr = accessor->asAbstractArrayMemberExpression()) {
+        for (size_t i = 0; i < arrayExpr->level(); i++) {
+          result_.format("%s[]", result_.chars());
+        }
+      } else if (AbstractFieldExpression* fieldExpr = accessor->asAbstractFieldExpression()) {
+        Atom *field_name = fieldExpr->field();
+        TokenKind token = fieldExpr->token();
+        result_.format("%s%s%s", result_.chars(), TokenNames[token], field_name->chars());
+      }
+      accessor = accessor->child();
     }
+    
     result_.format("%s)", result_.chars());
   }
   void visitTernaryExpression(TernaryExpression *node) override {
