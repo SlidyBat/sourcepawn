@@ -72,7 +72,7 @@ static inline int32_t getFixedLength(ContiguouslyStoredType* t)
   if (t->isEnumStruct()) {
     int fieldCount = 0;
     ast::LayoutDecls* lds = t->toEnumStruct()->decl()->body();
-    for (int i = 0; i < lds->length(); ++i) {
+    for (size_t i = 0; i < lds->length(); ++i) {
       ast::LayoutDecl* ld = lds->at(i);
       if (!ld->isFieldDecl())
         continue;
@@ -85,6 +85,7 @@ static inline int32_t getFixedLength(ContiguouslyStoredType* t)
 
   assert(0); // :TODO: proper error reporting?
   // the new contiguously stored type isn't supported
+  return 0;
 }
 
 // this one is too complicated to inline arguably
@@ -102,6 +103,7 @@ static inline bool hasFixedLength(ContiguouslyStoredType* t) {
     return true;
 
   assert(false); // :TODO: this should never really happen
+  return false;
 }
 
 // because we don't have the definition of RecordDecl in types.h
@@ -128,7 +130,7 @@ static inline Type* getNonUniformAddressableSubType(ContiguouslyStoredType* t, s
   }
 
   ast::LayoutDecls* lds = t->toEnumStruct()->decl()->body();
-  for (int j = i; j < lds->length(); ++j) {
+  for (size_t j = i; j < lds->length(); ++j) {
     ast::LayoutDecl* ld = lds->at(i);
     if (ld->isFieldDecl())
       return ld->toFieldDecl()->te().resolved();
