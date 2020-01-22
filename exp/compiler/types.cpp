@@ -466,11 +466,12 @@ sp::BuildTypeName(Type* aType, Atom* name, TypeDiagFlags flags)
   if (aType->isConst())
     builder = "const ";
 
-  if (FunctionType* type = aType->asFunction())
+  if (!aType->isResolvedTypedef() && aType->isFunction()) {
+    FunctionType* type = aType->toFunction();
     builder = builder + BuildTypeFromSignature(type->signature(), flags & kDiagFlagsInnerMask);
-  else
+  } else {
     builder = builder + GetBaseTypeName(aType);
-
+  }
   if (!!(flags & TypeDiagFlags::IsByRef) || aType->isReference())
     builder = builder + "&";
 
