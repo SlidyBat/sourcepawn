@@ -264,7 +264,7 @@ GetBaseTypeName(Type* type)
   if (type->isUnresolvable())
     return "<unresolved>";
   if (type->isMetaFunction())
-    return "function";
+    return "Function";
   if (type->isUnchecked())
     return "any";
   if (type->isVoid() || type->isImplicitVoid())
