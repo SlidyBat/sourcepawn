@@ -379,6 +379,10 @@ BuildTypeFromSpecifier(const TypeSpecifier* spec, Atom* name, TypeDiagFlags flag
         base = base + "[" + value + "]";
         continue;
       }
+      else if (NameProxy* np = expr->asNameProxy()) {
+        base = base + "[" + np->name()->chars() + "]";
+        continue;
+      }
     }
 
     // Hack. We can do better if it becomes necessary, these types are only
