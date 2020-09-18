@@ -106,6 +106,9 @@ class Preprocessor
   Atom* current_name() const {
     return current()->atom();
   }
+  AtomMap<Macro*>::iterator macros() {
+    return macros_.iter();
+  }
 
   // Advances the token stream by one token, returning the new token kind.
   TokenKind next();

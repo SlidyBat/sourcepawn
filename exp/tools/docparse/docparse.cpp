@@ -297,7 +297,7 @@ class Analyzer : public PartialAstVisitor
     atom_parent_ = cc_.add("parent");
   }
 
-  JsonObject *analyze(ParseTree *tree) {
+  JsonObject *analyze(ParseTree *tree, Preprocessor& pp) {
     functions_ = new (pool_) JsonList();
     methodmaps_ = new (pool_) JsonList();
     enums_ = new (pool_) JsonList();
@@ -305,6 +305,11 @@ class Analyzer : public PartialAstVisitor
     typesets_ = new (pool_) JsonList();
     typedefs_ = new (pool_) JsonList();
     enum_structs_ = new (pool_) JsonList();
+    defines_ = new (pool_) JsonList();
+
+    for (auto iter = pp.macros(); !iter.empty(); iter.next()) {
+      visitMacro(iter->key, iter->value);
+    }
 
     for (size_t i = 0; i < tree->statements()->length(); i++) {
       Statement *stmt = tree->statements()->at(i);
@@ -319,6 +324,7 @@ class Analyzer : public PartialAstVisitor
     obj->add(cc_.add("typesets"), typesets_);
     obj->add(cc_.add("typedefs"), typedefs_);
     obj->add(cc_.add("enumstructs"), enum_structs_);
+    obj->add(cc_.add("defines"), defines_);
     return obj;
   }
 
@@ -363,9 +369,9 @@ class Analyzer : public PartialAstVisitor
 
     FunctionNode *fun = node->method();
     if (fun->signature()->native())
-        obj->add(atom_kind_, toJson("native"));
+      obj->add(atom_kind_, toJson("native"));
     else
-        obj->add(atom_kind_, toJson("stock"));
+      obj->add(atom_kind_, toJson("stock"));
     obj->add(atom_returnType_, toJson(fun->signature()->returnType()));
     obj->add(atom_parameters_, toJson(fun->signature()->parameters()));
     methods_->add(obj);
@@ -474,6 +480,34 @@ class Analyzer : public PartialAstVisitor
     functions_->add(obj);
   }
 
+  void visitMacro(Atom* key, Macro *node) {
+    // Ignore macros that aren't backed by file (e.g. __sourcepawn__)
+    FullSourceRef ref = cc_.source().decode(node->start());
+    if (!ref.file)
+      return;
+
+    JsonObject *obj = new (pool_) JsonObject();
+    obj->add(atom_name_, toJson(key));
+    startDoc(obj, "define", key, node->start());
+
+    std::string value;
+    if (node->tokens->length()) {
+      ref = cc_.source().decode(node->start());
+      if (ref.file) {
+        const char* file = ref.file->chars();
+        
+        value = std::string{
+          file + ref.offset,
+          file + ref.offset + node->length(),
+        };
+      }
+    }
+    
+    obj->add(atom_value_, toJson(value.c_str()));
+
+    defines_->add(obj);
+  }
+
  private:
   void startDoc(JsonObject *obj, const char *type, Atom *name, const SourceLocation &loc) {
     unsigned start, end;
@@ -574,8 +608,8 @@ class Analyzer : public PartialAstVisitor
   Atom *atom_doc_start_;
   Atom *atom_doc_end_;
   Atom *atom_properties_;
-  Atom* atom_methods_;
-  Atom* atom_fields_;
+  Atom *atom_methods_;
+  Atom *atom_fields_;
   Atom *atom_getter_;
   Atom *atom_setter_;
   Atom *atom_entries_;
@@ -591,6 +625,7 @@ class Analyzer : public PartialAstVisitor
   JsonList *typesets_;
   JsonList *typedefs_;
   JsonList *enum_structs_;
+  JsonList *defines_;
 
   JsonList *props_;
   JsonList *methods_;
@@ -601,31 +636,29 @@ Run(CompileContext &cc, const char *path)
 {
   Comments comments(cc);
   ParseTree *tree = nullptr;
+  Preprocessor pp(cc);
+
+  pp.disableIncludes();
+  pp.setCommentDelegate(&comments);
+
   {
-    Preprocessor pp(cc);
-
-    pp.disableIncludes();
-    pp.setCommentDelegate(&comments);
-
-    {
-      ReportingContext rc(cc, SourceLocation());
-      RefPtr<SourceFile> file = cc.source().open(rc, path);
-      if (!file)
-        return nullptr;
-      if (!pp.enter(file))
-        return nullptr;
-    }
-
-    NameResolver nr(cc);
-    Parser parser(cc, pp, nr);
-
-    tree = parser.parse();
-    if (!tree || !cc.phasePassed())
+    ReportingContext rc(cc, SourceLocation());
+    RefPtr<SourceFile> file = cc.source().open(rc, path);
+    if (!file)
+      return nullptr;
+    if (!pp.enter(file))
       return nullptr;
   }
 
+  NameResolver nr(cc);
+  Parser parser(cc, pp, nr);
+
+  tree = parser.parse();
+  if (!tree || !cc.phasePassed())
+    return nullptr;
+
   Analyzer analyzer(cc, comments);
-  return analyzer.analyze(tree);
+  return analyzer.analyze(tree, pp);
 }
 
 int main(int argc, char **argv)
