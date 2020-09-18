@@ -1266,8 +1266,9 @@ Lexer::directive_next(Token* tok)
 
   // For now, we ignore comments completely while inside a macro.
   TokenKind kind;
-  while ((kind = scan(tok)) == TOK_COMMENT)
-  {}
+  while ((kind = scan(tok)) == TOK_COMMENT) {
+    handleComments(tok);
+  }
 
   return kind;
 }
@@ -1344,10 +1345,10 @@ Lexer::processTailCommentBlock(Token* tok)
 TokenKind
 Lexer::handleComments(Token* tok)
 {
-  // We don't bother inserting comments from macros, or if we're not parsing
+  // We don't bother inserting comments if we're not parsing
   // for an AST dump.
   TokenKind kind = tok->kind;
-  if (!pp_.traceComments() || lexing_for_directive_) {
+  if (!pp_.traceComments()) {
     while ((kind = scan(tok)) == TOK_COMMENT)
     {}
     return kind;
